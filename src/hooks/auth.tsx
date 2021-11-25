@@ -2,9 +2,11 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface UserProps {
+export interface UserProps {
     id: string;
     name: string;
+    email: string;
+    photograph: string;
 }
 
 interface DataProps {
@@ -19,14 +21,17 @@ interface credentialsProps {
 
 interface AuthContextData {
     user: UserProps;
+    loading: boolean;
     signIn(credentials: credentialsProps): Promise<void>;
     signOut(): void;
+    updateUser(value: UserProps): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData)
 
 export const AuthProvider: React.FC = ({ children }) => {
     const [data, setData] = useState<DataProps>({} as DataProps)
+    const [loading, setLoading] = useState<boolean>(true)
 
     const storageInitial = async () => {
         const [token, user] = await AsyncStorage.multiGet([
@@ -35,6 +40,7 @@ export const AuthProvider: React.FC = ({ children }) => {
         ])
         if (token[1] && user[1]) setData({ token: token[1], user: JSON.parse(user[1]) })
         else setData({} as DataProps)
+        setLoading(false)
     }
 
     useEffect(() => {
@@ -42,9 +48,7 @@ export const AuthProvider: React.FC = ({ children }) => {
     }, [])
 
     const signIn = useCallback(async ({ email, password }) => {
-        console.log({ email, password })
         const res = await api.post('/login', { email, password })
-        console.log(res.data)
         const { token, user } = res.data
         await AsyncStorage.multiSet([
             ['@JDV:token', token],
@@ -58,8 +62,17 @@ export const AuthProvider: React.FC = ({ children }) => {
         setData({} as DataProps)
     }, [])
 
+    const updateUser = useCallback(async (newUser) => {
+        const token = data.token
+        setData({ token, user: newUser })
+        await AsyncStorage.multiSet([
+            ['@JDV:token', token],
+            ['@JDV:user', JSON.stringify(newUser)]
+        ])
+    }, [data])
+
     return (
-        <AuthContext.Provider value={{ signIn, signOut, user: data.user }}>
+        <AuthContext.Provider value={{ loading, signIn, signOut, user: data.user, updateUser }}>
             {children}
         </AuthContext.Provider>
     )

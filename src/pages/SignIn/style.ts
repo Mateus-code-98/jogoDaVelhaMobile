@@ -5,29 +5,25 @@ export const Container = styled.View`
     justify-content: center;
     align-items: center;
     padding: 20px;
-    padding-bottom: 100px;
 `
 
 export const Title = styled.Text`
-    font-size: 24px;
+    font-size: 40px;
+    font-family: "Rajdhani_600SemiBold";
+    text-align:center;
     color:#F4EDE8;
-    /* font-family: 'RobotoSlab-Medium'; */
-    margin:64px 0 24px;
 `
 
-export const CreateAccountButton = styled.TouchableOpacity`
-    background-color: #312E38;
-    border-top-width:1px;
-    border-top-color:#232129;
-    padding:16px 0px;
-    justify-content: center;
-    align-items: center;
-    flex-direction: row;
+export const Description = styled.Text`
+    font-size: 15px;
+    font-family: "Rajdhani_400Regular";
+    text-align:center;
+    color:#F4EDE8;
 `
 
-export const CreateAccountButtonText = styled.Text`
-    color:#FF9000;
-    font-size: 18px;
-    /* font-family:'RobotoSlab-Regular'; */
-    margin-left: 16px;
+export const TextButton = styled.Text`
+    font-size: 15px;
+    font-family: "Rajdhani_500Medium";
+    text-align:center;
+    color:#F4EDE8;
 `

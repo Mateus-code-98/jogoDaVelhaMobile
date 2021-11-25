@@ -1,117 +1,38 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, Image, ScrollView, TextInput, View } from "react-native";
-import { Container, CreateAccountButton, CreateAccountButtonText, Title } from './style';
+import React from "react";
+import { ScrollView, View } from "react-native";
+import { Container, Description, TextButton, Title } from './style';
 import { useNavigation } from '@react-navigation/native';
-import Logo from './../../../assets/logo.png';
-import Input, { RefInputProps } from "../../components/Input";
-import { Button } from "../../components/Button";
-import Icon from 'react-native-vector-icons/Feather';
-import * as Yup from 'yup';
-import { useAuth } from './../../hooks/auth';
-import api from "../../services/api";
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { LoginSVG } from "../../components/Icons/Login";
+import { RectButton } from "react-native-gesture-handler";
+import { useAuth } from '../../hooks/auth';
 
 export const SignIn: React.FC = () => {
-    const navigation = useNavigation<any>()
-    const emailRef = useRef<RefInputProps>(null)
-    const passwordRef = useRef<RefInputProps>(null)
-    const [errorEmail, setErrorEmail] = useState<string | null>(null)
-    const [errorPassword, setErrorPassword] = useState<string | null>(null)
-    const { signIn, user } = useAuth()
-
-    useEffect(() => {
-        console.log(user)
-    }, [user])
-
-    const onSubmit = useCallback(async () => {
-        const error_email = await VerifyEmail()
-        const error_password = await VerifyPassword()
-
-        const email = emailRef.current?.getValue() ? emailRef.current.getValue() : ''
-        const password = passwordRef.current?.getValue() ? passwordRef.current.getValue() : ''
-
-        if (!error_email && !error_password) {
-            try{
-                await signIn({
-                    email: email ? email : '',
-                    password: password ? password : ''
-                })
-            }catch(e){
-                console.log(e)
-            }
-        }
-
-    }, [emailRef, passwordRef])
-
-    const VerifyEmail = useCallback(async () => {
-        let resu
-        setErrorEmail(null)
-        const email = emailRef.current?.getValue()
-        const schemaEmail = Yup.object().shape({
-            email: Yup.string().required("Campo obrigatório").email('Email inválido'),
-        })
-        try {
-            await await schemaEmail.validate({ email })
-        } catch (err: any) {
-            setErrorEmail(err.errors ? err.errors[0] : null)
-            resu = err.errors ? err.errors[0] : null
-        }
-        return resu
-    }, [emailRef])
-
-    const VerifyPassword = useCallback(async () => {
-        let resu
-        setErrorPassword(null)
-        const password = passwordRef.current?.getValue()
-
-        const schemaPassword = Yup.object().shape({
-            password: Yup.string().required("Campo obrigatório"),
-        })
-        try {
-            await schemaPassword.validate({ password })
-        } catch (err: any) {
-            setErrorPassword(err.errors ? err.errors[0] : null)
-            resu = err.errors ? err.errors[0] : null
-        }
-        return resu
-    }, [passwordRef])
-
+    const { signIn } = useAuth()
     return (
-        <>
-            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
-                <Container>
-                    <Image style={{ height: 50 }} resizeMode="contain" source={Logo} />
-                    <Title>Faça seu login</Title>
-                    <Input
-                        error={errorEmail}
-                        ref={emailRef}
-                        keyboardType="email-address"
-                        autoCorrect={false}
-                        autoCapitalize="none"
-                        name="email"
-                        icon="mail"
-                        placeholder="E-mail"
-                        returnKeyType="next"
-                        onChange={() => setErrorEmail(null)}
-                        onSubmitEditing={() => passwordRef.current?.focus()}
-                    />
-                    <Input
-                        error={errorPassword}
-                        ref={passwordRef}
-                        secureTextEntry
-                        name="password"
-                        icon="lock"
-                        placeholder="Senha"
-                        onChange={() => setErrorPassword(null)}
-                        returnKeyType="send"
-                        onSubmitEditing={onSubmit}
-                    />
-                    <Button onPress={onSubmit}>Entrar</Button>
-                </Container >
-            </ScrollView>
-            <CreateAccountButton onPress={() => navigation.navigate('SignUp')}>
-                <Icon color="#FF9000" name="log-in" size={20} />
-                <CreateAccountButtonText>SignUp</CreateAccountButtonText>
-            </CreateAccountButton>
-        </>
+        <View style={{ position: 'relative', flex: 1 }}>
+            <View style={{ flex: 1, position: 'absolute' }}>
+                <LoginSVG />
+            </View>
+            <Container>
+                <View>
+                    <Title>Conecte-se</Title>
+                    <Title>e duele contra</Title>
+                    <Title>seus amigos</Title>
+                    <View style={{ marginTop: 10 }}>
+                        <Description>Convide seus amigos para jogar</Description>
+                        <Description>o bom e velho jogo da velha</Description>
+                    </View>
+                </View>
+                <RectButton onPress={async ()=> await signIn({email:"teu@gmail.com",password:"123456"})} style={{ flexDirection: "row", alignItems: "center", borderRadius: 5, backgroundColor: "#E51C44", width: "100%", marginTop: 40 }}>
+                    <View style={{ padding: 10, borderRightWidth: 1, borderRightColor: "#991F36" }}>
+                        <Icon name="google" size={30} color="#FFF" />
+                    </View>
+                    <View style={{ padding: 10, flex: 1 }}>
+                        <TextButton>Entrar com o Google</TextButton>
+                    </View>
+                </RectButton>
+            </Container >
+        </View>
     )
 }
