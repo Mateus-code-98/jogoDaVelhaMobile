@@ -6,7 +6,7 @@ export interface UserProps {
     id: string;
     name: string;
     email: string;
-    photograph: string;
+    photoUrl: string;
 }
 
 interface DataProps {
@@ -14,9 +14,10 @@ interface DataProps {
     user: UserProps;
 }
 
-interface credentialsProps {
+export interface credentialsProps {
     email: string;
-    password: string;
+    name: string;
+    photoUrl: string;
 }
 
 interface AuthContextData {
@@ -47,8 +48,8 @@ export const AuthProvider: React.FC = ({ children }) => {
         storageInitial()
     }, [])
 
-    const signIn = useCallback(async ({ email, password }) => {
-        const res = await api.post('/login', { email, password })
+    const signIn = useCallback(async (data) => {
+        const res = await api.post('/login', data)
         const { token, user } = res.data
         await AsyncStorage.multiSet([
             ['@JDV:token', token],

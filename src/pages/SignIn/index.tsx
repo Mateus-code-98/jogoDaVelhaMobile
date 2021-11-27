@@ -1,14 +1,32 @@
-import React from "react";
-import { ScrollView, View } from "react-native";
+import React, { useCallback, useState, useEffect } from "react";
+import { View } from "react-native";
 import { Container, Description, TextButton, Title } from './style';
-import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { LoginSVG } from "../../components/Icons/Login";
 import { RectButton } from "react-native-gesture-handler";
-import { useAuth } from '../../hooks/auth';
+import { credentialsProps, useAuth } from '../../hooks/auth';
+import * as Google from 'expo-google-app-auth';
+import api from "../../services/api";
+
+const IOS_CLIENT_ID = '156597919334-o18ka3mbv6h64jm5p0a567klhiki1gh7.apps.googleusercontent.com'
+const ANDROID_CLIENT_DI = '156597919334-51ftr2k1qjaib0lvj1lnv8jb0e4m9vv1.apps.googleusercontent.com'
+const WEB_CLIENT_ID = '156597919334-9md92rbvkroj8dvatpoa33md3sg7o5sd.apps.googleusercontent.com'
 
 export const SignIn: React.FC = () => {
+
     const { signIn } = useAuth()
+
+    const handleGoogleSignIn = useCallback(async () => {
+        const resu = await Google.logInAsync({
+            iosClientId: IOS_CLIENT_ID,
+            androidClientId: ANDROID_CLIENT_DI,
+            iosStandaloneAppClientId: IOS_CLIENT_ID,
+            androidStandaloneAppClientId: ANDROID_CLIENT_DI,
+            clientId: WEB_CLIENT_ID
+        });
+        if(resu.type === 'success')signIn(resu.user as credentialsProps)
+    }, [])
+
     return (
         <View style={{ position: 'relative', flex: 1 }}>
             <View style={{ flex: 1, position: 'absolute' }}>
@@ -24,7 +42,7 @@ export const SignIn: React.FC = () => {
                         <Description>o bom e velho jogo da velha</Description>
                     </View>
                 </View>
-                <RectButton onPress={async ()=> await signIn({email:"teu@gmail.com",password:"123456"})} style={{ flexDirection: "row", alignItems: "center", borderRadius: 5, backgroundColor: "#E51C44", width: "100%", marginTop: 40 }}>
+                <RectButton onPress={handleGoogleSignIn} style={{ flexDirection: "row", alignItems: "center", borderRadius: 5, backgroundColor: "#E51C44", width: "100%", marginTop: 40 }}>
                     <View style={{ padding: 10, borderRightWidth: 1, borderRightColor: "#991F36" }}>
                         <Icon name="google" size={30} color="#FFF" />
                     </View>

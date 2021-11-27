@@ -1,31 +1,28 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { Text, Image, View } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { RectButton } from "react-native-gesture-handler";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useAuth, UserProps } from '../../hooks/auth';
+import { useAuth } from '../../hooks/auth';
 import { useNavigation } from "@react-navigation/core";
 
 export const Home: React.FC = () => {
-    const { updateUser } = useAuth()
+    const { signOut, user } = useAuth()
     const navigator: any = useNavigation()
-
-    const signOut = useCallback(async () => {
-        updateUser({} as UserProps)
-        await AsyncStorage.multiRemove(['@JDV:token', '@JDV:user'])
-    }, [])
-
+    const nameShort = (name:string) => {
+        const nameArray = name.split(' ');
+        return `${nameArray[0]} ${nameArray[1]}`
+    }
     return (
         <View style={{ flex: 1, padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: "space-between" }}>
                 <View style={{ flexDirection: 'row' }}>
-                    <Image style={{ height: 50, width: 50, borderRadius: 3 }} source={{ uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTeoktTc3yCNfoP9xUxNbytvxSM9tkCsd9WDQ&usqp=CAU" }} />
+                    <Image style={{ height: 50, width: 50, borderRadius: 3 }} source={{ uri: user.photoUrl }} />
                     <View style={{ justifyContent: "space-between", marginLeft: 20 }}>
                         <View style={{ flexDirection: 'row' }}>
                             <Text style={{ fontFamily: "Rajdhani_500Medium", fontSize: 24, color: "#DDE3F0" }}>
                                 Olá,
                             </Text>
-                            <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 24, color: "#DDE3F0" }}>Tiago</Text>
+                            <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 24, color: "#DDE3F0",marginLeft:5 }}>{nameShort(user.name)}</Text>
                         </View>
                         <Text style={{ fontFamily: "Rajdhani_400Regular", fontSize: 16, color: "#ABB1CC" }} >Seu id é 1S22JK4</Text>
                     </View>
