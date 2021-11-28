@@ -7,6 +7,7 @@ export interface UserProps {
     name: string;
     email: string;
     photoUrl: string;
+    friendlyId:string;
 }
 
 interface DataProps {
