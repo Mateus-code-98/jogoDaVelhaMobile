@@ -8,13 +8,14 @@ import { credentialsProps, useAuth } from '../../hooks/auth';
 import * as Google from 'expo-google-app-auth';
 import api from "../../services/api";
 
+
 const IOS_CLIENT_ID = '156597919334-o18ka3mbv6h64jm5p0a567klhiki1gh7.apps.googleusercontent.com'
 const ANDROID_CLIENT_DI = '156597919334-51ftr2k1qjaib0lvj1lnv8jb0e4m9vv1.apps.googleusercontent.com'
 const WEB_CLIENT_ID = '156597919334-9md92rbvkroj8dvatpoa33md3sg7o5sd.apps.googleusercontent.com'
 
 export const SignIn: React.FC = () => {
 
-    const { signIn } = useAuth()
+    const { signIn, user } = useAuth()
 
     const handleGoogleSignIn = useCallback(async () => {
         const resu = await Google.logInAsync({
@@ -25,6 +26,7 @@ export const SignIn: React.FC = () => {
             clientId: WEB_CLIENT_ID
         });
         if(resu.type === 'success')signIn(resu.user as credentialsProps)
+        // signIn({ email: "mateusbrasil@aluno.ufrb.edu.br", name: "", photoUrl: "" })
     }, [])
 
     return (

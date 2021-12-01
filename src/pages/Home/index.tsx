@@ -10,6 +10,7 @@ import { userInterface } from "../../interfaces/userInterface";
 import api from "../../services/api";
 import Input, { RefInputProps } from "../../components/Input";
 import { Loading } from "../../components/Loading";
+import io, { Socket } from "socket.io-client";
 
 const nameShort = (name: string) => {
     const nameArray = name.split(' ');
@@ -23,6 +24,7 @@ export const Home: React.FC = () => {
     const [loadingAdd, setLoadingAdd] = useState<boolean>(false)
     const inputIdRef = useRef<RefInputProps>(null)
     const [errorFriendlyId, setErrorFriendlyId] = useState<string | null>(null)
+    const [socket, setSocket] = useState<Socket>({} as Socket)
 
     const { signOut, user } = useAuth()
     const navigator: any = useNavigation()
@@ -51,20 +53,25 @@ export const Home: React.FC = () => {
             try {
                 const friendlyId = inputIdRef.current?.getValue()
                 const result = await api.post('/friendships', { friendlyId })
+                socket.emit(`new-friend`, { user, friend: result.data.friend })
                 searchFriends()
                 onDismiss()
                 setLoadingAdd(false)
             } catch (e: any) {
                 alert(e.response.data.message)
-                
                 setLoadingAdd(false)
             }
         }, 3000)
-    }, [inputIdRef, loadingAdd])
+    }, [inputIdRef, loadingAdd, user, socket])
 
-    useEffect(() => {
+    useEffect(() => initialFunc(), [])
+
+    const initialFunc = useCallback(() => {
         searchFriends()
-    }, [])
+        const socketInstance = io(`http://192.168.0.103:3333`)
+        setSocket(socketInstance)
+        socketInstance.on(`new-friend-${user.id}`, searchFriends)
+    }, [user])
 
     return (
         <View style={{ flexGrow: 1, padding: 20 }}>
