@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { Home } from "../pages/Home";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Game } from "../pages/Game";
@@ -6,7 +6,6 @@ import { Game } from "../pages/Game";
 const App = createNativeStackNavigator();
 
 export const AppRoutes: React.FC = () => {
-
     return (
         <App.Navigator
             screenOptions={{

@@ -1,13 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Socket } from 'socket.io-client';
 
 export interface UserProps {
     id: string;
     name: string;
     email: string;
     photoUrl: string;
-    friendlyId:string;
+    friendlyId: string;
 }
 
 interface DataProps {
@@ -24,6 +25,8 @@ export interface credentialsProps {
 interface AuthContextData {
     user: UserProps;
     loading: boolean;
+    socket: Socket | null;
+    setSocket(value: Socket | null): void;
     signIn(credentials: credentialsProps): Promise<void>;
     signOut(): void;
     updateUser(value: UserProps): Promise<void>;
@@ -34,6 +37,7 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData)
 export const AuthProvider: React.FC = ({ children }) => {
     const [data, setData] = useState<DataProps>({} as DataProps)
     const [loading, setLoading] = useState<boolean>(true)
+    const [socket, setSocket] = useState<Socket | null>(null)
 
     const storageInitial = async () => {
         const [token, user] = await AsyncStorage.multiGet([
@@ -60,9 +64,10 @@ export const AuthProvider: React.FC = ({ children }) => {
     }, [])
 
     const signOut = useCallback(async () => {
+        if(socket)socket.disconnect()
         await AsyncStorage.multiRemove(['@JDV:token', '@JDV:user'])
         setData({} as DataProps)
-    }, [])
+    }, [socket])
 
     const updateUser = useCallback(async (newUser) => {
         const token = data.token
@@ -74,7 +79,7 @@ export const AuthProvider: React.FC = ({ children }) => {
     }, [data])
 
     return (
-        <AuthContext.Provider value={{ loading, signIn, signOut, user: data.user, updateUser }}>
+        <AuthContext.Provider value={{ loading, signIn, signOut, user: data.user, updateUser, setSocket, socket }}>
             {children}
         </AuthContext.Provider>
     )

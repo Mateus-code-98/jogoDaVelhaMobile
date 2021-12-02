@@ -1,45 +1,45 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Text, Image, View, ScrollView, ToastAndroid, RefreshControl, Keyboard } from "react-native";
+import { Text, Image, View, ScrollView, RefreshControl, Keyboard } from "react-native";
 import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import { RectButton, TextInput } from "react-native-gesture-handler";
+import { RectButton } from "react-native-gesture-handler";
 import { useAuth } from '../../hooks/auth';
 import { useNavigation } from "@react-navigation/core";
 import { ActivityIndicator, Modal } from 'react-native-paper';
-import { userInterface } from "../../interfaces/userInterface";
+import { userInterface } from '../../interfaces/userInterface';
 import api from "../../services/api";
 import Input, { RefInputProps } from "../../components/Input";
 import { Loading } from "../../components/Loading";
-import io, { Socket } from "socket.io-client";
-
-const nameShort = (name: string) => {
-    const nameArray = name.split(' ');
-    return `${nameArray[0]} ${nameArray[1]}`
-}
+import io from "socket.io-client";
+import { useGlobal } from '../../hooks/global';
+import { debounce, nameShort } from "../../services/generalServices";
 
 export const Home: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false)
     const [friends, setFriends] = useState<userInterface[]>([] as userInterface[])
-    const [loadingFriends, setLoadingFriends] = useState<boolean>(false)
+    const [loadingFriends, setLoadingFriends] = useState<boolean>(true)
     const [loadingAdd, setLoadingAdd] = useState<boolean>(false)
     const inputIdRef = useRef<RefInputProps>(null)
     const [errorFriendlyId, setErrorFriendlyId] = useState<string | null>(null)
-    const [socket, setSocket] = useState<Socket>({} as Socket)
 
-    const { signOut, user } = useAuth()
+    const { signOut, user, socket, setSocket } = useAuth()
+    const { setFriendshipId, friendshipId } = useGlobal()
     const navigator: any = useNavigation()
 
-    const searchFriends = useCallback(async () => {
+    const shadowSearchFriends = useCallback(async ({ user, socket }) => {
+        debounce(() => searchFriends({ user, socket }), 1000)
+    }, [])
+
+    const loadingSearchFriends = useCallback(async ({ user, socket }) => {
         setLoadingFriends(true)
-        setTimeout(async () => {
-            try {
-                const result = await api.get('/friendships')
-                setFriends(result.data)
-                setLoadingFriends(false)
-            } catch (e) {
-                setLoadingFriends(false)
-            }
-        }, 1000)
+        debounce(() => searchFriends({ user, socket }), 1000)
+    }, [])
+
+    const searchFriends = useCallback(async ({ user, socket }) => {
+        const result = await api.get('/friendships')
+        setFriends(result.data)
+        setLoadingFriends(false)
+        subscribeInChannels({ friends: result.data, user, socket })
     }, [])
 
     const onDismiss = useCallback(() => {
@@ -53,8 +53,8 @@ export const Home: React.FC = () => {
             try {
                 const friendlyId = inputIdRef.current?.getValue()
                 const result = await api.post('/friendships', { friendlyId })
-                socket.emit(`new-friend`, { user, friend: result.data.friend })
-                searchFriends()
+                socket?.emit(`new-friend`, { user, friend: result.data.friend })
+                loadingSearchFriends({ user, socket })
                 onDismiss()
                 setLoadingAdd(false)
             } catch (e: any) {
@@ -64,14 +64,31 @@ export const Home: React.FC = () => {
         }, 3000)
     }, [inputIdRef, loadingAdd, user, socket])
 
-    useEffect(() => initialFunc(), [])
+    useEffect(() => initialFunc(), [friendshipId])
 
     const initialFunc = useCallback(() => {
-        searchFriends()
-        const socketInstance = io(`http://192.168.0.103:3333`)
+        setLoadingFriends(true)
+        if (socket) socket.disconnect()
+        const socketInstance = io(`http://192.168.0.103:3333`, { query: { userId: user.id } })
         setSocket(socketInstance)
-        socketInstance.on(`new-friend-${user.id}`, searchFriends)
-    }, [user])
+        loadingSearchFriends({ user, socket: socketInstance })
+        // socketInstance.emit(`${user.id}`)
+    }, [user, socket])
+
+    const clickPlay = useCallback((newFriendshipId) => {
+        setFriendshipId(newFriendshipId)
+        navigator.navigate('Game')
+    }, [])
+
+    const subscribeInChannels = useCallback(({ friends, user, socket }) => {
+        socket.removeAllListeners()
+        socket.on(`new-friend-${user.id}`, () => shadowSearchFriends({ user, socket }))
+        // console.log(`To no canal - ${`new-friend-${user.id}`}`)
+        friends.forEach((friend: userInterface) => {
+            // console.log(`To no canal - ${`${friend.id}`}`)
+            socket.on(`${friend.id}`, () => shadowSearchFriends({ user, socket }))
+        })
+    }, [])
 
     return (
         <View style={{ flexGrow: 1, padding: 20 }}>
@@ -108,7 +125,7 @@ export const Home: React.FC = () => {
                 </View>
             </View>
             <View style={{ justifyContent: 'space-between', flex: 1 }}>
-                <ScrollView refreshControl={<RefreshControl refreshing={false} enabled={!loadingFriends} onRefresh={searchFriends} />} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingTop: 20, marginBottom: 20 }}>
+                <ScrollView refreshControl={<RefreshControl refreshing={false} enabled={!loadingFriends} onRefresh={() => loadingSearchFriends({ user, socket })} />} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingTop: 20, marginBottom: 20 }}>
                     {!loadingFriends && friends.map((friend) => (
                         <View key={friend.id} style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#1D2766", paddingBottom: 10, marginBottom: 10 }}>
                             <Image style={{ height: 50, width: 50, borderRadius: 3 }} source={{ uri: friend.photoUrl }} />
@@ -118,13 +135,13 @@ export const Home: React.FC = () => {
                                         {nameShort(friend.name)}
                                     </Text>
                                     <View style={{ flexDirection: "row", alignItems: 'center' }}>
-                                        <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: "#32BD50", marginRight: 5 }}>
+                                        <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: friend.status === "off" ? "#ac1a1a" : "#32BD50", marginRight: 5 }}>
                                         </View>
-                                        <Text style={{ fontFamily: "Rajdhani_400Regular", fontSize: 13, color: "#ABB1CC" }}>Disponível</Text>
+                                        <Text style={{ fontFamily: "Rajdhani_400Regular", fontSize: 13, color: "#ABB1CC" }}>{friend.status === "off" ? "offline" : "Disponível"}</Text>
                                     </View>
                                 </View>
                                 <View style={{ justifyContent: "center" }}>
-                                    <RectButton onPress={() => navigator.navigate('Game')} style={{ padding: 5, backgroundColor: "#E51C44", borderRadius: 3 }}>
+                                    <RectButton onPress={() => clickPlay(friend.friendshipId)} style={{ padding: 5, backgroundColor: "#E51C44", borderRadius: 3 }}>
                                         <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 18, color: "#DDE3F0" }}>Jogar</Text>
                                     </RectButton>
                                 </View>
