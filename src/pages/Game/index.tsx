@@ -11,7 +11,7 @@ import { userInterface } from '../../interfaces/userInterface';
 import { useAuth } from '../../hooks/auth';
 import { ActivityIndicator } from 'react-native-paper';
 import { io } from "socket.io-client";
-import { nameShort } from "../../services/generalServices";
+import { hasWinnerService, nameShort } from "../../services/generalServices";
 
 export const Game: React.FC = () => {
     const [gamePositions, setGamePositions] = useState([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
@@ -20,6 +20,7 @@ export const Game: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true)
     const [myType, setMyType] = useState<'X' | 'O'>('X')
     const [adversaryType, setAdversaryType] = useState<'X' | 'O'>('O')
+    const [status, setStatus] = useState<'inProgress' | 'finished'>('finished')
 
     const navigator: any = useNavigation()
 
@@ -48,13 +49,15 @@ export const Game: React.FC = () => {
         const newGamePositions = JSON.parse(resu.data.game)
         setGamePositions(newGamePositions)
 
+        const newStatus = resu.data.status
+        setStatus(newStatus)
+
         subscribeInChannels({ adversary: user.id === playerO.id ? playerX : playerO, socket, friendshipId })
 
         setLoading(false)
     }, [])
 
     const initialFunc = useCallback(() => {
-        console.log('Ola')
         if (socket) socket.disconnect()
         const socketInstance = io(`http://192.168.0.103:3333`, { query: { userId: user.id } })
         setSocket(socketInstance)
@@ -65,7 +68,6 @@ export const Game: React.FC = () => {
         socket.removeAllListeners()
         socket.on(`${adversary.id}`, (data: any) => setAdversary(data))
         socket.on(`new-move-${friendshipId}`, (data: any) => {
-            console.log(data)
             const newGamePositions = JSON.parse(data.game)
             setGamePositions(newGamePositions)
 
@@ -76,22 +78,30 @@ export const Game: React.FC = () => {
 
             const nextPlayer = data.turn
             setAtualPlayer(nextPlayer)
+
+            const newStatus = data.status
+            setStatus(newStatus)
         })
     }, [])
 
     useEffect(() => initialFunc(), [])
 
     const clickOnPosition = useCallback(({ x, y }) => {
-        if (atualPlayer === user.id) {
+        if (atualPlayer === user.id && status === 'inProgress') {
             const newGamePositions = gamePositions
             if (newGamePositions[y][x] === 0) {
                 newGamePositions[y][x] = myType === 'O' ? 1 : -1
                 setGamePositions(newGamePositions)
                 setAtualPlayer(adversary.id)
+                const hasWinner = hasWinnerService({game:newGamePositions})
+                if (hasWinner.status){
+                    setStatus('finished')
+                    // Somar vitórias
+                }
                 socket?.emit('new-move', { friendshipId, x, y })
             }
         }
-    }, [atualPlayer, adversaryType, myType, gamePositions, user, friendshipId, socket])
+    }, [atualPlayer, adversaryType, status, myType, gamePositions, user, friendshipId, socket])
 
     const goBack = useCallback(() => {
         setFriendshipId("")
@@ -113,7 +123,7 @@ export const Game: React.FC = () => {
                 <View style={{ justifyContent: "space-between", flex: 1 }}>
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ borderRadius: 10, backgroundColor: atualPlayer === adversary.id ? (adversaryType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: atualPlayer === adversary.id ? "#DDE3F0" : (adversaryType === 'X' ? '#243189' : '#E51C44'), margin: 20, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
+                        <Text style={{ borderRadius: 10, backgroundColor: (atualPlayer === adversary.id && status === 'inProgress') ? (adversaryType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: (atualPlayer === adversary.id && status === 'inProgress') ? "#DDE3F0" : (adversaryType === 'X' ? '#243189' : '#E51C44'), margin: 20, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, marginBottom: 20, borderBottomColor: "#C4C4C4", borderBottomWidth: 1, paddingBottom: 10, width: "60%" }}>
                             <View style={{ justifyContent: "space-between" }}>
                                 <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 24, color: "#DDE3F0" }}>
@@ -168,7 +178,7 @@ export const Game: React.FC = () => {
                                 </View>
                             </View>
                         </View>
-                        <Text style={{ borderRadius: 10, backgroundColor: atualPlayer === user.id ? (myType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: atualPlayer === user.id ? "#DDE3F0" : (myType === 'X' ? '#243189' : '#E51C44'), margin: 20, marginTop: 30, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
+                        <Text style={{ borderRadius: 10, backgroundColor: (atualPlayer === user.id && status === 'inProgress') ? (myType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: (atualPlayer === user.id && status === 'inProgress') ? "#DDE3F0" : (myType === 'X' ? '#243189' : '#E51C44'), margin: 20, marginTop: 30, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
                     </View>
                 </View>
             }
