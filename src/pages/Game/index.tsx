@@ -15,9 +15,11 @@ import { nameShort } from "../../services/generalServices";
 
 export const Game: React.FC = () => {
     const [gamePositions, setGamePositions] = useState([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    const [atualPlayer, setAtualPlayer] = useState<number>(1)
+    const [atualPlayer, setAtualPlayer] = useState<string>('')
     const [adversary, setAdversary] = useState<userInterface>({} as userInterface)
     const [loading, setLoading] = useState<boolean>(true)
+    const [myType, setMyType] = useState<'X' | 'O'>('X')
+    const [adversaryType, setAdversaryType] = useState<'X' | 'O'>('O')
 
     const navigator: any = useNavigation()
 
@@ -26,12 +28,29 @@ export const Game: React.FC = () => {
 
     const searchFriendship = useCallback(async ({ socket, friendshipId, user }) => {
         const resu = await api.get(`/friendships/${friendshipId}`)
+
         const playerX = resu.data.playerX
         const playerO = resu.data.playerO
-        if (user.id === playerO.id) setAdversary(playerX)
-        else setAdversary(playerO)
+        if (user.id === playerO.id) {
+            setAdversary(playerX)
+            setMyType('O')
+            setAdversaryType('X')
+        }
+        else {
+            setAdversary(playerO)
+            setMyType('X')
+            setAdversaryType('O')
+        }
+
+        const nextPlayer = resu.data.turn
+        setAtualPlayer(nextPlayer)
+
+        const newGamePositions = JSON.parse(resu.data.game)
+        setGamePositions(newGamePositions)
+
+        subscribeInChannels({ adversary: user.id === playerO.id ? playerX : playerO, socket, friendshipId })
+
         setLoading(false)
-        subscribeInChannels({ adversary: user.id === playerO.id ? playerX : playerO, socket })
     }, [])
 
     const initialFunc = useCallback(() => {
@@ -42,21 +61,37 @@ export const Game: React.FC = () => {
         searchFriendship({ socket: socketInstance, friendshipId, user })
     }, [user, socket, friendshipId])
 
-    const subscribeInChannels = useCallback(({ adversary, socket }) => {
+    const subscribeInChannels = useCallback(({ adversary, socket, friendshipId }) => {
         socket.removeAllListeners()
         socket.on(`${adversary.id}`, (data: any) => setAdversary(data))
+        socket.on(`new-move-${friendshipId}`, (data: any) => {
+            console.log(data)
+            const newGamePositions = JSON.parse(data.game)
+            setGamePositions(newGamePositions)
+
+            const playerX = data.playerX
+            const playerO = data.playerO
+            if (user.id === playerO.id) setAdversary(playerX)
+            else setAdversary(playerO)
+
+            const nextPlayer = data.turn
+            setAtualPlayer(nextPlayer)
+        })
     }, [])
 
     useEffect(() => initialFunc(), [])
 
     const clickOnPosition = useCallback(({ x, y }) => {
-        const newGamePositions = gamePositions
-        if (newGamePositions[y][x] === 0) {
-            newGamePositions[y][x] = atualPlayer
-            setGamePositions(newGamePositions)
-            setAtualPlayer(atualPlayer * (-1))
+        if (atualPlayer === user.id) {
+            const newGamePositions = gamePositions
+            if (newGamePositions[y][x] === 0) {
+                newGamePositions[y][x] = myType === 'O' ? 1 : -1
+                setGamePositions(newGamePositions)
+                setAtualPlayer(adversary.id)
+                socket?.emit('new-move', { friendshipId, x, y })
+            }
         }
-    }, [atualPlayer, gamePositions])
+    }, [atualPlayer, adversaryType, myType, gamePositions, user, friendshipId, socket])
 
     const goBack = useCallback(() => {
         setFriendshipId("")
@@ -78,7 +113,7 @@ export const Game: React.FC = () => {
                 <View style={{ justifyContent: "space-between", flex: 1 }}>
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ borderRadius: 10, backgroundColor: atualPlayer === -1 ? '#243189' : "#DDE3F0", color: atualPlayer === -1 ? "#DDE3F0" : "#243189", margin: 20, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
+                        <Text style={{ borderRadius: 10, backgroundColor: atualPlayer === adversary.id ? (adversaryType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: atualPlayer === adversary.id ? "#DDE3F0" : (adversaryType === 'X' ? '#243189' : '#E51C44'), margin: 20, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, marginBottom: 20, borderBottomColor: "#C4C4C4", borderBottomWidth: 1, paddingBottom: 10, width: "60%" }}>
                             <View style={{ justifyContent: "space-between" }}>
                                 <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 24, color: "#DDE3F0" }}>
@@ -133,7 +168,7 @@ export const Game: React.FC = () => {
                                 </View>
                             </View>
                         </View>
-                        <Text style={{ borderRadius: 10, backgroundColor: atualPlayer === 1 ? '#E51C44' : "#DDE3F0", color: atualPlayer === 1 ? "#DDE3F0" : "#E51C44", margin: 20, marginTop: 30, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
+                        <Text style={{ borderRadius: 10, backgroundColor: atualPlayer === user.id ? (myType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: atualPlayer === user.id ? "#DDE3F0" : (myType === 'X' ? '#243189' : '#E51C44'), margin: 20, marginTop: 30, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
                     </View>
                 </View>
             }
