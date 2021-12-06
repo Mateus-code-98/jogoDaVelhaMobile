@@ -1,11 +1,16 @@
 import * as React from "react"
 import Svg, { Circle } from "react-native-svg"
 
-export const IconO: React.FC = (props: any) => {
+interface iconInterface {
+    height: number | string;
+    width: number | string;
+}
+
+export const IconO: React.FC<iconInterface> = ({ height, width }, props) => {
     return (
         <Svg
-            width={60}
-            height={60}
+            width={width}
+            height={height}
             viewBox="0 0 175 175"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"

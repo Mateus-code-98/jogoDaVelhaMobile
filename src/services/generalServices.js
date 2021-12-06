@@ -37,6 +37,15 @@ const hasWinnerService = ({ game }) => {
     return { status: false }
 }
 
+const isFinished = ({ game }) => {
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (game[i][j] === 0) return false
+        }
+    }
+    return true
+}
+
 const thisLineIsCompletedService = (line) => {
     let contX = 0;
     let contO = 0;
@@ -50,4 +59,4 @@ const thisLineIsCompletedService = (line) => {
     return { status: false }
 }
 
-module.exports = { debounce, nameShort, hasWinnerService }
+module.exports = { debounce, nameShort, hasWinnerService, isFinished }

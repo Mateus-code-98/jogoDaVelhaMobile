@@ -64,7 +64,8 @@ export const AuthProvider: React.FC = ({ children }) => {
     }, [])
 
     const signOut = useCallback(async () => {
-        if(socket)socket.disconnect()
+        if (socket) socket.disconnect()
+        setSocket(null)
         await AsyncStorage.multiRemove(['@JDV:token', '@JDV:user'])
         setData({} as DataProps)
     }, [socket])

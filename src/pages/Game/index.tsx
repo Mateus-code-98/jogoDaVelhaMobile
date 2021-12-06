@@ -1,17 +1,19 @@
 import { useNavigation } from "@react-navigation/core";
 import React, { useState, useCallback, useEffect } from "react";
-import { Text, View, StatusBar, Image } from 'react-native';
-import { TouchableWithoutFeedback } from "react-native-gesture-handler";
+import { Text, View, StatusBar, Image, Dimensions } from 'react-native';
+import { RectButton, TouchableWithoutFeedback } from "react-native-gesture-handler";
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon2 from 'react-native-vector-icons/FontAwesome';
 import { IconO } from "../../components/Icons/IconO";
 import { IconX } from "../../components/Icons/IconX";
 import { useGlobal } from '../../hooks/global';
 import api from "../../services/api";
 import { userInterface } from '../../interfaces/userInterface';
 import { useAuth } from '../../hooks/auth';
-import { ActivityIndicator } from 'react-native-paper';
+import { ActivityIndicator, Modal } from 'react-native-paper';
 import { io } from "socket.io-client";
-import { hasWinnerService, nameShort } from "../../services/generalServices";
+import { hasWinnerService, isFinished, nameShort } from "../../services/generalServices";
+import { Loading } from "../../components/Loading";
 
 export const Game: React.FC = () => {
     const [gamePositions, setGamePositions] = useState([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
@@ -20,7 +22,11 @@ export const Game: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true)
     const [myType, setMyType] = useState<'X' | 'O'>('X')
     const [adversaryType, setAdversaryType] = useState<'X' | 'O'>('O')
-    const [status, setStatus] = useState<'inProgress' | 'finished'>('finished')
+    const [status, setStatus] = useState<'inProgress' | 'finished'>('inProgress')
+    const [modalOpen, setModalOpen] = useState(false)
+    const [loadingRequest, setLoadingRequest] = useState<boolean>(false)
+    const [winner, setWinner] = useState<'X' | 'O' | null>(null)
+    const [request, setRequest] = useState<'required' | null>(null)
 
     const navigator: any = useNavigation()
 
@@ -36,11 +42,15 @@ export const Game: React.FC = () => {
             setAdversary(playerX)
             setMyType('O')
             setAdversaryType('X')
+            let newRequest = resu.data.request_o
+            setRequest(newRequest)
         }
         else {
             setAdversary(playerO)
             setMyType('X')
             setAdversaryType('O')
+            let newRequest = resu.data.request_x
+            setRequest(newRequest)
         }
 
         const nextPlayer = resu.data.turn
@@ -51,6 +61,9 @@ export const Game: React.FC = () => {
 
         const newStatus = resu.data.status
         setStatus(newStatus)
+
+        const newWinner = resu.data.winner
+        setWinner(newWinner)
 
         subscribeInChannels({ adversary: user.id === playerO.id ? playerX : playerO, socket, friendshipId })
 
@@ -73,18 +86,36 @@ export const Game: React.FC = () => {
 
             const playerX = data.playerX
             const playerO = data.playerO
-            if (user.id === playerO.id) setAdversary(playerX)
-            else setAdversary(playerO)
+            if (adversary.id === playerX.id) {
+                setAdversary(playerX)
+                let newRequest = data.request_o
+                setRequest(newRequest)
+            }
+            else {
+                setAdversary(playerO)
+                let newRequest = data.request_x
+                setRequest(newRequest)
+            }
 
             const nextPlayer = data.turn
             setAtualPlayer(nextPlayer)
 
             const newStatus = data.status
             setStatus(newStatus)
+
+            const newWinner = data.winner
+            setWinner(newWinner)
+
         })
+
     }, [])
 
     useEffect(() => initialFunc(), [])
+
+    useEffect(() => {
+        if (status === 'finished') setModalOpen(true)
+        else setModalOpen(false)
+    }, [status])
 
     const clickOnPosition = useCallback(({ x, y }) => {
         if (atualPlayer === user.id && status === 'inProgress') {
@@ -93,10 +124,18 @@ export const Game: React.FC = () => {
                 newGamePositions[y][x] = myType === 'O' ? 1 : -1
                 setGamePositions(newGamePositions)
                 setAtualPlayer(adversary.id)
-                const hasWinner = hasWinnerService({game:newGamePositions})
-                if (hasWinner.status){
+                setRequest(null)
+                const hasWinner = hasWinnerService({ game: newGamePositions })
+                if (hasWinner.status) {
                     setStatus('finished')
-                    // Somar vitórias
+                    setWinner(hasWinner.type as ('X' | 'O' | null))
+                }
+                else {
+                    const isEnd = isFinished({ game: newGamePositions })
+                    if (isEnd) {
+                        setStatus('finished')
+                        setWinner(null)
+                    }
                 }
                 socket?.emit('new-move', { friendshipId, x, y })
             }
@@ -104,9 +143,23 @@ export const Game: React.FC = () => {
     }, [atualPlayer, adversaryType, status, myType, gamePositions, user, friendshipId, socket])
 
     const goBack = useCallback(() => {
+        setModalOpen(false)
         setFriendshipId("")
         navigator.navigate('Home')
     }, [])
+
+    const onDismiss = useCallback(() => {
+        setModalOpen(false)
+    }, [])
+
+    const sendRequest = useCallback(() => {
+        setLoadingRequest(true)
+        setTimeout(() => {
+            socket?.emit('request', { friendshipId, userId: user.id })
+            setRequest('required')
+            setLoadingRequest(false)
+        }, 1000)
+    }, [socket, friendshipId, user])
 
     return (
         <View style={{ flex: 1 }}>
@@ -137,33 +190,35 @@ export const Game: React.FC = () => {
                             <Image style={{ height: 50, width: 50, borderRadius: 3, marginRight: 20, marginLeft: 20 }} source={{ uri: adversary.photoUrl }} />
                         </View>
                     </View>
-                    <View style={{ flex: 1, justifyContent: "center", alignItems: 'center' }}>
-                        {gamePositions.map((line, posY) => {
-                            return (
-                                <View key={posY} style={{ flexDirection: "row" }}>
-                                    {line.map((position, posX) => {
-                                        return (
-                                            <TouchableWithoutFeedback onPress={() => clickOnPosition({ x: posX, y: posY })} key={posX} style={{
-                                                borderBottomWidth: posY === 0 ? 2 : 0,
-                                                borderBottomColor: "#FFF",
-                                                borderRightWidth: posX === 0 ? 2 : 0,
-                                                borderRightColor: "#FFF",
-                                                borderTopWidth: posY === 2 ? 2 : 0,
-                                                borderTopColor: "#FFF",
-                                                borderLeftWidth: posX === 2 ? 2 : 0,
-                                                borderLeftColor: "#FFF",
-                                                height: 100,
-                                                width: 100,
-                                                justifyContent: 'center',
-                                                alignItems: 'center'
-                                            }}>
-                                                {position === 1 ? <IconO /> : (position === -1) ? <IconX /> : <></>}
-                                            </TouchableWithoutFeedback>
-                                        )
-                                    })}
-                                </View>
-                            )
-                        })}
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: "center" }}>
+                        <View style={{ justifyContent: "center", alignItems: 'center' }}>
+                            {gamePositions.map((line, posY) => {
+                                return (
+                                    <View key={posY} style={{ flexDirection: "row" }}>
+                                        {line.map((position, posX) => {
+                                            return (
+                                                <TouchableWithoutFeedback onPress={() => clickOnPosition({ x: posX, y: posY })} key={posX} style={{
+                                                    borderBottomWidth: posY === 0 ? 2 : 0,
+                                                    borderBottomColor: "#FFF",
+                                                    borderRightWidth: posX === 0 ? 2 : 0,
+                                                    borderRightColor: "#FFF",
+                                                    borderTopWidth: posY === 2 ? 2 : 0,
+                                                    borderTopColor: "#FFF",
+                                                    borderLeftWidth: posX === 2 ? 2 : 0,
+                                                    borderLeftColor: "#FFF",
+                                                    height: Dimensions.get('window').height / 6,
+                                                    width: Dimensions.get('window').height / 6,
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    {position === 1 ? <IconO height={"50%"} width={"50%"} /> : (position === -1) ? <IconX height={"50%"} width={"50%"} /> : <></>}
+                                                </TouchableWithoutFeedback>
+                                            )
+                                        })}
+                                    </View>
+                                )
+                            })}
+                        </View>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', marginTop: 20, marginBottom: 20, borderTopColor: "#C4C4C4", borderTopWidth: 1, paddingTop: 10, width: "60%" }}>
@@ -186,6 +241,37 @@ export const Game: React.FC = () => {
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator color="#E51C44" size={30} />
                 </View>
+            }
+            {modalOpen &&
+                <Modal visible={modalOpen} dismissable={false} onDismiss={onDismiss} contentContainerStyle={{ backgroundColor: "#0B1138", position: "relative", margin: 20, padding: 20, elevation: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                        {winner &&
+                            <>
+                                <Text style={{ color: "#FFF", fontFamily: "Rajdhani_600SemiBold", fontSize: 24, marginRight: 5 }}>Vitória do jogador</Text>
+                                {winner === 'X' &&
+                                    <IconX width={24} height={24} />
+                                }
+                                {winner === 'O' &&
+                                    <IconO width={24} height={24} />
+                                }
+                            </>
+                        }
+                        {!winner &&
+                            <Text style={{ color: "#FFF", fontFamily: "Rajdhani_600SemiBold", fontSize: 24, marginRight: 5 }}>Empate</Text>
+                        }
+                    </View>
+                    <RectButton onPress={sendRequest} enabled={!loadingRequest && !request} style={{ backgroundColor: "#E51C44", alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 20, padding: 10, borderRadius: 3 }}>
+                        <Text style={{ textAlign: 'center', marginRight: 5, color: "#FFF", fontFamily: "Rajdhani_600SemiBold", position: 'relative', fontSize: 18 }}>
+                            {!loadingRequest ? (!request ? 'Solicitar revanche' : 'Revanche solicitada') : 'Aguarde'}
+                        </Text>
+                        {!loadingRequest ? <></> : <Loading />}
+                    </RectButton>
+                    <RectButton onPress={goBack} style={{ backgroundColor: "#E51C44", alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 20, padding: 10, borderRadius: 3 }}>
+                        <Text style={{ textAlign: 'center', marginRight: 5, color: "#FFF", fontFamily: "Rajdhani_600SemiBold", position: 'relative', fontSize: 18 }}>
+                            Voltar para Home
+                        </Text>
+                    </RectButton>
+                </Modal>
             }
         </View>
     )
