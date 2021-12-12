@@ -15,7 +15,6 @@ export interface RefInputProps {
 const Input: React.ForwardRefRenderFunction<RefInputProps, InputProps> = ({ defaultValue, error, ...rest }, ref) => {
     const inputRef = useRef<TextInputNative>(null)
     const [value, setValue] = useState<string>(defaultValue ? defaultValue : '')
-    const [isFocused, setIsFocused] = useState<boolean>(false)
 
     const focus = useCallback(() => {
         inputRef.current?.focus()
@@ -34,15 +33,13 @@ const Input: React.ForwardRefRenderFunction<RefInputProps, InputProps> = ({ defa
     
     return (
         <TouchableWithoutFeedback ref={(ref: any) => ref = ref} style={{ width: '100%' }}>
-            <Container isErrored={!!error} isFocused={isFocused}>
+            <Container>
                 <TextInput
                     defaultValue={value}
                     onChangeText={(text) => setValue(text)}
                     ref={inputRef}
                     placeholderTextColor="#666360"
                     {...rest}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
                 />
             </Container>
         </TouchableWithoutFeedback>

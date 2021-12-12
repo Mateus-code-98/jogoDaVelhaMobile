@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Text, Image, View, ScrollView, RefreshControl, Keyboard } from "react-native";
+import { Text, Image, View, ScrollView, RefreshControl, Keyboard, KeyboardAvoidingView, TextInput } from "react-native";
 import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { RectButton } from "react-native-gesture-handler";
@@ -13,6 +13,7 @@ import { Loading } from "../../components/Loading";
 import io from "socket.io-client";
 import { useGlobal } from '../../hooks/global';
 import { debounce, nameShort } from "../../services/generalServices";
+import * as Clipboard from 'expo-clipboard'
 
 export const Home: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false)
@@ -21,7 +22,6 @@ export const Home: React.FC = () => {
     const [loadingAdd, setLoadingAdd] = useState<boolean>(false)
     const inputIdRef = useRef<RefInputProps>(null)
     const [errorFriendlyId, setErrorFriendlyId] = useState<string | null>(null)
-
     const { signOut, user, socket, setSocket } = useAuth()
     const { setFriendshipId, friendshipId } = useGlobal()
     const navigator: any = useNavigation()
@@ -49,19 +49,17 @@ export const Home: React.FC = () => {
     const addNewFriend = useCallback(async () => {
         setLoadingAdd(true)
         Keyboard.dismiss()
-        setTimeout(async () => {
-            try {
-                const friendlyId = inputIdRef.current?.getValue()
-                const result = await api.post('/friendships', { friendlyId })
-                socket?.emit(`new-friend`, { user, friend: result.data.friend })
-                loadingSearchFriends({ user, socket })
-                onDismiss()
-                setLoadingAdd(false)
-            } catch (e: any) {
-                alert(e.response.data.message)
-                setLoadingAdd(false)
-            }
-        }, 3000)
+        try {
+            const friendlyId = inputIdRef.current?.getValue()
+            const result = await api.post('/friendships', { friendlyId })
+            socket?.emit(`new-friend`, { user, friend: result.data.friend })
+            loadingSearchFriends({ user, socket })
+            onDismiss()
+            setLoadingAdd(false)
+        } catch (e: any) {
+            alert(e.response.data.message)
+            setLoadingAdd(false)
+        }
     }, [inputIdRef, loadingAdd, user, socket])
 
     useEffect(() => initialFunc(), [friendshipId])
@@ -69,16 +67,21 @@ export const Home: React.FC = () => {
     const initialFunc = useCallback(() => {
         setLoadingFriends(true)
         if (socket) socket.disconnect()
-        const socketInstance = io(`http://192.168.0.103:3333`, { query: { userId: user.id } })
+        const socketInstance = io(`https://apijogodavelhaa.herokuapp.com`, { query: { userId: user.id } })
         setSocket(socketInstance)
         loadingSearchFriends({ user, socket: socketInstance })
-        // socketInstance.emit(`${user.id}`)
     }, [user, socket])
+
 
     const clickPlay = useCallback((newFriendshipId) => {
         setFriendshipId(newFriendshipId)
         navigator.navigate('Game')
     }, [])
+
+    const clickCopy = useCallback(() => {
+        Clipboard.setString(user.friendlyId)
+        alert('Copiado para área de transferência!')
+    }, [user])
 
     const subscribeInChannels = useCallback(({ friends, user, socket }) => {
         socket.removeAllListeners()
@@ -88,6 +91,10 @@ export const Home: React.FC = () => {
             // console.log(`To no canal - ${`${friend.id}`}`)
             socket.on(`${friend.id}`, () => shadowSearchFriends({ user, socket }))
         })
+    }, [])
+
+    const openModal = useCallback(() => {
+        setModalOpen(true)
     }, [])
 
     return (
@@ -108,7 +115,7 @@ export const Home: React.FC = () => {
                     </View>
                 </View>
                 <View style={{ justifyContent: 'center', alignItems: "center" }}>
-                    <RectButton onPress={() => setModalOpen(true)} style={{ padding: 10, width: 50, height: 50, backgroundColor: "#E51C44", borderRadius: 3, justifyContent: 'center', alignItems: 'center' }}>
+                    <RectButton onPress={clickCopy} style={{ padding: 10, width: 50, height: 50, backgroundColor: "#E51C44", borderRadius: 3, justifyContent: 'center', alignItems: 'center' }}>
                         <Icon2 size={30} name="file-copy" color="#FFF" />
                     </RectButton>
                 </View>
@@ -119,7 +126,7 @@ export const Home: React.FC = () => {
                     <Text style={{ fontFamily: "Rajdhani_400Regular", fontSize: 13, color: "#ABB1CC", opacity: loadingFriends ? 0 : 1 }}>Total {friends.length}</Text>
                 </View>
                 <View style={{ justifyContent: 'center', alignItems: "center" }}>
-                    <RectButton onPress={() => setModalOpen(true)} style={{ padding: 10, width: 50, height: 50, backgroundColor: "#E51C44", borderRadius: 3, justifyContent: 'center', alignItems: 'center' }}>
+                    <RectButton onPress={openModal} style={{ padding: 10, width: 50, height: 50, backgroundColor: "#E51C44", borderRadius: 3, justifyContent: 'center', alignItems: 'center' }}>
                         <Icon size={20} name="user-plus" color="#FFF" />
                     </RectButton>
                 </View>
@@ -165,13 +172,18 @@ export const Home: React.FC = () => {
             </View>
             {modalOpen &&
                 <Modal visible={modalOpen} dismissable={!loadingAdd} onDismiss={onDismiss} contentContainerStyle={{ backgroundColor: "#0B1138", margin: 20, padding: 20, elevation: 10 }}>
-                    <Input ref={inputIdRef} onSubmitEditing={addNewFriend} error={errorFriendlyId} autoFocus={false} returnKeyType="send" keyboardAppearance="dark" autoCapitalize="characters" autoCorrect={false} placeholder="Cole aqui o id do seu amigo" style={{ fontSize: 16, fontFamily: "Rajdhani_600SemiBold", padding: 10, paddingBottom: 5, paddingTop: 5, backgroundColor: "#C4C4C4", borderRadius: 3, color: "#000000" }} placeholderTextColor="#424040" />
-                    <RectButton enabled={!loadingAdd} onPress={addNewFriend} style={{ backgroundColor: "#E51C44", alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 20, padding: 10, borderRadius: 3 }}>
-                        <Text style={{ textAlign: 'center', marginRight: 5, color: "#FFF", fontFamily: "Rajdhani_600SemiBold", position: 'relative', fontSize: 18 }}>
-                            {!loadingAdd ? 'Adicionar' : 'Aguarde'}
-                        </Text>
-                        {!loadingAdd ? <></> : <Loading />}
-                    </RectButton>
+                    <KeyboardAvoidingView
+                        behavior="position"
+                        enabled={false}
+                    >
+                        <Input ref={inputIdRef} onSubmitEditing={addNewFriend} error={errorFriendlyId} returnKeyType="send" keyboardAppearance="dark" autoCapitalize="characters" autoCorrect={false} placeholder="Cole aqui o id do seu amigo" style={{ fontSize: 16, fontFamily: "Rajdhani_600SemiBold", padding: 10, paddingBottom: 5, paddingTop: 5, backgroundColor: "#C4C4C4", borderRadius: 3, color: "#000000" }} placeholderTextColor="#424040" />
+                        <RectButton enabled={!loadingAdd} onPress={addNewFriend} style={{ backgroundColor: "#E51C44", alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 20, padding: 10, borderRadius: 3 }}>
+                            <Text style={{ textAlign: 'center', marginRight: 5, color: "#FFF", fontFamily: "Rajdhani_600SemiBold", position: 'relative', fontSize: 18 }}>
+                                {!loadingAdd ? 'Adicionar' : 'Aguarde'}
+                            </Text>
+                            {!loadingAdd ? <></> : <Loading />}
+                        </RectButton>
+                    </KeyboardAvoidingView>
                 </Modal>
             }
         </View>

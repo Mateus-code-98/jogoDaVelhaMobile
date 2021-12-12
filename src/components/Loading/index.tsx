@@ -49,7 +49,7 @@ export const Loading: React.FC = () => {
     }, [])
 
     return (
-        <View style={{ flexDirection: 'row',marginTop:-4 }}>
+        <View style={{ flexDirection: 'row' }}>
             <Animated.Text style={{ fontSize: 18, color: "#FFF", opacity: dotOne }}>.</Animated.Text>
             <Animated.Text style={{ fontSize: 18, color: "#FFF", opacity: dotTwo }}>.</Animated.Text>
             <Animated.Text style={{ fontSize: 18, color: "#FFF", opacity: dotThree }}>.</Animated.Text>

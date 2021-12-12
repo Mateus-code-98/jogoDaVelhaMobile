@@ -1813,6 +1813,11 @@
     sudo-prompt "^9.0.0"
     wcwidth "^1.0.1"
 
+"@react-native-community/clipboard@^1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@react-native-community/clipboard/-/clipboard-1.5.1.tgz#32abb3ea2eb91ee3f9c5fb1d32d5783253c9fabe"
+  integrity sha512-AHAmrkLEH5UtPaDiRqoULERHh3oNv7Dgs0bTC0hO5Z2GdNokAMPT5w8ci8aMcRemcwbtdHjxChgtjbeA38GBdA==
+
 "@react-native/assets@1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@react-native/assets/-/assets-1.0.0.tgz#c6f9bf63d274bafc8e970628de24986b30a55c8e"
@@ -3224,6 +3229,13 @@ expo-auth-session@~3.4.2:
     expo-web-browser "~10.0.2"
     invariant "^2.2.4"
     qs "6.9.1"
+
+expo-clipboard@~2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/expo-clipboard/-/expo-clipboard-2.0.3.tgz#4f2b1f441a26c45e77e218506256ab0cebf58d62"
+  integrity sha512-fcv9rUFoKSMWknL4wJnln+DGnPQdYKYjILap58k9MPsywZ5Gp2PRI17oqMVyM9r/yIhsr5PKUsSGGIjvxUBYrA==
+  dependencies:
+    expo-modules-core "~0.4.4"
 
 expo-constants@~12.1.1, expo-constants@~12.1.3:
   version "12.1.3"

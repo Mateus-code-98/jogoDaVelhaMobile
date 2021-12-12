@@ -27,7 +27,8 @@ export const Game: React.FC = () => {
     const [loadingRequest, setLoadingRequest] = useState<boolean>(false)
     const [winner, setWinner] = useState<'X' | 'O' | null>(null)
     const [request, setRequest] = useState<'required' | null>(null)
-
+    const [adversaryWinners, setAdversaryWinners] = useState(0)
+    const [myWinners, setMyWinners] = useState(0)
     const navigator: any = useNavigation()
 
     const { friendshipId, setFriendshipId } = useGlobal()
@@ -42,6 +43,8 @@ export const Game: React.FC = () => {
             setAdversary(playerX)
             setMyType('O')
             setAdversaryType('X')
+            setAdversaryWinners(resu.data.victories_x)
+            setMyWinners(resu.data.victories_o)
             let newRequest = resu.data.request_o
             setRequest(newRequest)
         }
@@ -49,6 +52,8 @@ export const Game: React.FC = () => {
             setAdversary(playerO)
             setMyType('X')
             setAdversaryType('O')
+            setAdversaryWinners(resu.data.victories_o)
+            setMyWinners(resu.data.victories_x)
             let newRequest = resu.data.request_x
             setRequest(newRequest)
         }
@@ -72,7 +77,7 @@ export const Game: React.FC = () => {
 
     const initialFunc = useCallback(() => {
         if (socket) socket.disconnect()
-        const socketInstance = io(`http://192.168.0.103:3333`, { query: { userId: user.id } })
+        const socketInstance = io(`https://apijogodavelhaa.herokuapp.com`, { query: { userId: user.id } })
         setSocket(socketInstance)
         searchFriendship({ socket: socketInstance, friendshipId, user })
     }, [user, socket, friendshipId])
@@ -89,11 +94,15 @@ export const Game: React.FC = () => {
             if (adversary.id === playerX.id) {
                 setAdversary(playerX)
                 let newRequest = data.request_o
+                setAdversaryWinners(data.victories_x)
+                setMyWinners(data.victories_o)
                 setRequest(newRequest)
             }
             else {
                 setAdversary(playerO)
                 let newRequest = data.request_x
+                setAdversaryWinners(data.victories_o)
+                setMyWinners(data.victories_x)
                 setRequest(newRequest)
             }
 
@@ -129,6 +138,7 @@ export const Game: React.FC = () => {
                 if (hasWinner.status) {
                     setStatus('finished')
                     setWinner(hasWinner.type as ('X' | 'O' | null))
+                    setMyWinners((atualMyWinners) => (atualMyWinners + 1))
                 }
                 else {
                     const isEnd = isFinished({ game: newGamePositions })
@@ -176,7 +186,7 @@ export const Game: React.FC = () => {
                 <View style={{ justifyContent: "space-between", flex: 1 }}>
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ borderRadius: 10, backgroundColor: (atualPlayer === adversary.id && status === 'inProgress') ? (adversaryType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: (atualPlayer === adversary.id && status === 'inProgress') ? "#DDE3F0" : (adversaryType === 'X' ? '#243189' : '#E51C44'), margin: 20, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
+                        <Text style={{ borderRadius: 10, backgroundColor: (atualPlayer === adversary.id && status === 'inProgress') ? (adversaryType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: (atualPlayer === adversary.id && status === 'inProgress') ? "#DDE3F0" : (adversaryType === 'X' ? '#243189' : '#E51C44'), margin: 20, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>{adversaryWinners}</Text>
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, marginBottom: 20, borderBottomColor: "#C4C4C4", borderBottomWidth: 1, paddingBottom: 10, width: "60%" }}>
                             <View style={{ justifyContent: "space-between" }}>
                                 <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 24, color: "#DDE3F0" }}>
@@ -233,7 +243,7 @@ export const Game: React.FC = () => {
                                 </View>
                             </View>
                         </View>
-                        <Text style={{ borderRadius: 10, backgroundColor: (atualPlayer === user.id && status === 'inProgress') ? (myType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: (atualPlayer === user.id && status === 'inProgress') ? "#DDE3F0" : (myType === 'X' ? '#243189' : '#E51C44'), margin: 20, marginTop: 30, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>5</Text>
+                        <Text style={{ borderRadius: 10, backgroundColor: (atualPlayer === user.id && status === 'inProgress') ? (myType === 'X' ? '#243189' : '#E51C44') : "#DDE3F0", color: (atualPlayer === user.id && status === 'inProgress') ? "#DDE3F0" : (myType === 'X' ? '#243189' : '#E51C44'), margin: 20, marginTop: 30, width: 50, height: 50, textAlign: "center", textAlignVertical: 'center', fontSize: 22, fontFamily: 'Rajdhani_600SemiBold' }}>{myWinners}</Text>
                     </View>
                 </View>
             }

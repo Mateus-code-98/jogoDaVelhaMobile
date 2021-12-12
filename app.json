@@ -18,10 +18,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier":"host.exp.exponent",
-      "config":{
-        "googleSignIn":{
-          "reservedClientId":"com.googleusercontent.apps.156597919334-o18ka3mbv6h64jm5p0a567klhiki1gh7"
+      "bundleIdentifier": "host.exp.exponent",
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.156597919334-o18ka3mbv6h64jm5p0a567klhiki1gh7"
         }
       }
     },
@@ -29,7 +29,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.jogodavelhamobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
