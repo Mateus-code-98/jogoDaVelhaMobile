@@ -1,9 +1,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api_url } from '../config/environments';
 
 const api = axios.create({
-    baseURL:'https://apijogodavelhaa.herokuapp.com',
-    // baseURL: 'http://192.168.0.103:3333',
+    baseURL: api_url,
 })
 
 api.interceptors.request.use(async (config: any) => {

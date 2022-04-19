@@ -14,6 +14,7 @@ import io from "socket.io-client";
 import { useGlobal } from '../../hooks/global';
 import { debounce, nameShort } from "../../services/generalServices";
 import * as Clipboard from 'expo-clipboard'
+import { api_url } from "../../config/environments";
 
 export const Home: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false)
@@ -27,6 +28,7 @@ export const Home: React.FC = () => {
     const navigator: any = useNavigation()
 
     const shadowSearchFriends = useCallback(async ({ user, socket }) => {
+        console.log({ user })
         debounce(() => searchFriends({ user, socket }), 1000)
     }, [])
 
@@ -67,7 +69,7 @@ export const Home: React.FC = () => {
     const initialFunc = useCallback(() => {
         setLoadingFriends(true)
         if (socket) socket.disconnect()
-        const socketInstance = io(`https://apijogodavelhaa.herokuapp.com`, { query: { userId: user.id } })
+        const socketInstance = io(api_url, { query: { userId: user.id } })
         setSocket(socketInstance)
         loadingSearchFriends({ user, socket: socketInstance })
     }, [user, socket])

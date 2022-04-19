@@ -14,6 +14,7 @@ import { ActivityIndicator, Modal } from 'react-native-paper';
 import { io } from "socket.io-client";
 import { hasWinnerService, isFinished, nameShort } from "../../services/generalServices";
 import { Loading } from "../../components/Loading";
+import { api_url } from "../../config/environments";
 
 export const Game: React.FC = () => {
     const [gamePositions, setGamePositions] = useState([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
@@ -30,7 +31,7 @@ export const Game: React.FC = () => {
     const [adversaryWinners, setAdversaryWinners] = useState(0)
     const [myWinners, setMyWinners] = useState(0)
     const navigator: any = useNavigation()
-
+    const [you, setYou] = useState<userInterface>({} as userInterface)
     const { friendshipId, setFriendshipId } = useGlobal()
     const { user, socket, setSocket } = useAuth()
 
@@ -41,6 +42,7 @@ export const Game: React.FC = () => {
         const playerO = resu.data.playerO
         if (user.id === playerO.id) {
             setAdversary(playerX)
+            setYou(playerO)
             setMyType('O')
             setAdversaryType('X')
             setAdversaryWinners(resu.data.victories_x)
@@ -50,6 +52,7 @@ export const Game: React.FC = () => {
         }
         else {
             setAdversary(playerO)
+            setYou(playerX)
             setMyType('X')
             setAdversaryType('O')
             setAdversaryWinners(resu.data.victories_o)
@@ -77,7 +80,7 @@ export const Game: React.FC = () => {
 
     const initialFunc = useCallback(() => {
         if (socket) socket.disconnect()
-        const socketInstance = io(`https://apijogodavelhaa.herokuapp.com`, { query: { userId: user.id } })
+        const socketInstance = io(api_url, { query: { userId: user.id } })
         setSocket(socketInstance)
         searchFriendship({ socket: socketInstance, friendshipId, user })
     }, [user, socket, friendshipId])
@@ -127,6 +130,7 @@ export const Game: React.FC = () => {
     }, [status])
 
     const clickOnPosition = useCallback(({ x, y }) => {
+        console.log({ x, y })
         if (atualPlayer === user.id && status === 'inProgress') {
             const newGamePositions = gamePositions
             if (newGamePositions[y][x] === 0) {
@@ -147,6 +151,8 @@ export const Game: React.FC = () => {
                         setWinner(null)
                     }
                 }
+                console.log({ x, y, friendshipId })
+
                 socket?.emit('new-move', { friendshipId, x, y })
             }
         }
@@ -232,7 +238,7 @@ export const Game: React.FC = () => {
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', marginTop: 20, marginBottom: 20, borderTopColor: "#C4C4C4", borderTopWidth: 1, paddingTop: 10, width: "60%" }}>
-                            <Image style={{ height: 50, width: 50, borderRadius: 3, marginRight: 20, marginLeft: 20 }} source={{ uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROFMtsmWYQIC_g4m6iEkdtSsly9B72-0D6QQ&usqp=CAU" }} />
+                            <Image style={{ height: 50, width: 50, borderRadius: 3, marginRight: 20, marginLeft: 20 }} source={{ uri: you.photoUrl }} />
                             <View style={{ justifyContent: "space-between" }}>
                                 <Text style={{ fontFamily: "Rajdhani_600SemiBold", fontSize: 24, color: "#DDE3F0" }}>
                                     Você

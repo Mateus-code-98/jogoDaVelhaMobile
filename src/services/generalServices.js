@@ -13,7 +13,6 @@ const nameShort = (name) => {
     return `${nameArray[0]} ${nameArray[1]}`
 }
 
-
 const hasWinnerService = ({ game }) => {
 
     for (let i = 0; i < 3; i++) {
